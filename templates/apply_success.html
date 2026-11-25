@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Заявка принята — ИС Аренда{% endblock %}
+{% block content %}
+<div class="card success">
+  <div class="success__icon">{{ icon('ok') }}</div>
+  <h1 class="h2">Заявка № <span class="mono">{{ app_row.application_num }}</span> принята</h1>
+  <p class="page-sub">Заявка сохранена в базе агентства {{ app_row.created_at or app_row.request_date }}. Сохраните номер — по нему можно проверить статус.</p>
+  <dl class="dl">
+    <div><dt>Объект</dt><dd>{{ app_row.address_ufa or '—' }}{% if app_row.district_name %} ({{ app_row.district_name }}){% endif %}</dd></div>
+    <div><dt>Цена</dt><dd>{{ app_row.price_monthly|money }} ₽ / мес</dd></div>
+    <div><dt>Арендатор</dt><dd>{{ app_row.full_name }}, {{ app_row.phone }}</dd></div>
+    <div><dt>Статус</dt><dd><span class="badge badge--new">{{ app_row.status }}</span></dd></div>
+  </dl>
+  <div class="actions">
+    <a class="btn btn--primary" href="{{ url_for('index') }}">Вернуться в каталог</a>
+    <a class="btn btn--ghost" href="{{ url_for('applications_search', num=app_row.application_num) }}">Проверить статус заявки</a>
+  </div>
+</div>
+{% endblock %}

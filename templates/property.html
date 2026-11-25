@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ prop.rooms_count }}-комн. квартира, {{ prop.district_name }} — ИС Аренда{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Навигация">
+  <a href="{{ url_for('index') }}">Каталог</a> <span>/</span> <span>{{ prop.address_ufa }}</span>
+</nav>
+<div class="property">
+  <div class="card property__main">
+    <div class="property__photo">{{ icon('rooms') }}</div>
+    <h1 class="h2">{{ prop.rooms_count }}-комн. квартира, {{ '%.1f'|format(prop.area_total) }} м²</h1>
+    <p class="object-card__addr">{{ icon('pin') }} {{ prop.address_ufa }}</p>
+    <p class="object-card__desc">{{ prop.description or 'Описание не заполнено.' }}</p>
+    <dl class="dl">
+      <div><dt>Район</dt><dd>{{ prop.district_name }}</dd></div>
+      <div><dt>Этаж</dt><dd>{{ prop.floor_info }}</dd></div>
+      <div><dt>Тип объекта</dt><dd>{{ prop.property_type }}</dd></div>
+      <div><dt>Статус</dt><dd>{{ prop.status }}</dd></div>
+    </dl>
+  </div>
+  <aside class="card summary">
+    <p class="price price--lg">{{ prop.price_monthly|money }} ₽ <span>/ мес</span></p>
+    <a class="btn btn--primary btn--wide" href="{{ url_for('apply_form', property_id=prop.property_id) }}">Оставить заявку</a>
+    <a class="btn btn--ghost btn--wide" href="{{ url_for('index') }}">Вернуться в каталог</a>
+  </aside>
+</div>
+{% endblock %}

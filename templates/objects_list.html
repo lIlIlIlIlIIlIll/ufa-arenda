@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Учёт объектов — ИС Аренда{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title page-title--left">Учёт объектов</h1>
+    <p class="page-sub">Всего в базе: <strong>{{ properties|length }}</strong> записей по текущему запросу.</p>
+  </div>
+  <a class="btn btn--primary" href="{{ url_for('objects_create') }}">+ Добавить объект</a>
+</div>
+
+<form class="card searchbar searchbar__form" method="get" action="{{ url_for('objects_list') }}">
+  <div class="field field--grow">
+    <label for="q" class="sr-only">Поиск</label>
+    <input id="q" name="q" class="control" value="{{ q }}" placeholder="Адрес или описание: Ленина, центр, проспект">
+  </div>
+  <div class="field field--inline">
+    <select name="district_id" class="control" aria-label="Район">
+      <option value="">Все районы</option>
+      {% for d in districts %}
+      <option value="{{ d.district_id }}" {% if selected_district == d.district_id %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field--inline">
+    <select name="status" class="control" aria-label="Статус">
+      <option value="">Любой статус</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field--inline">
+    <input name="price_max" class="control" inputmode="numeric" placeholder="Цена до" value="{{ price_max or '' }}" aria-label="Цена до">
+  </div>
+  <button class="btn btn--primary" type="submit">{{ icon('search') }} Найти</button>
+  <a class="btn btn--ghost" href="{{ url_for('objects_list') }}">Сбросить</a>
+</form>
+
+<section class="card">
+  <table class="table table--objects">
+    <thead>
+      <tr><th>№</th><th>Адрес</th><th>Район</th><th>Комн.</th><th>Площадь</th><th>Цена</th><th>Статус</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+      {% for p in properties %}
+      <tr>
+        <td>{{ p.property_id }}</td>
+        <td>{{ p.address_ufa }}</td>
+        <td>{{ p.district_name }}</td>
+        <td>{{ p.rooms_count }}</td>
+        <td>{{ '%.1f'|format(p.area_total) }} м²</td>
+        <td class="nowrap">{{ p.price_monthly|money }} ₽</td>
+        <td><span class="badge badge--{{ p.status|lower|replace(' ', '-') }}">{{ p.status }}</span></td>
+        <td class="nowrap">
+          <a class="btn btn--ghost btn--xs" href="{{ url_for('objects_edit', property_id=p.property_id) }}">{{ icon('edit') }} Изменить</a>
+          <form method="post" action="{{ url_for('objects_delete', property_id=p.property_id) }}" class="inline"
+                onsubmit="return confirm('Удалить объект №{{ p.property_id }}?');">
+            <input type="hidden" name="token" value="{{ p.property_id }}">
+            <button class="btn btn--danger btn--xs" type="submit">{{ icon('trash') }} Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">Записи не найдены. <a href="{{ url_for('objects_create') }}">Добавить объект</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

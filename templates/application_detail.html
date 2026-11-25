@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Заявка {{ app_row.application_num }} — ИС Аренда{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Навигация">
+  <a href="{{ url_for('manage_applications') }}">Заявки</a> <span>/</span> <span>{{ app_row.application_num }}</span>
+</nav>
+<div class="two-col">
+  <section class="card">
+    <h1 class="h2">Заявка <span class="mono">{{ app_row.application_num }}</span></h1>
+    <dl class="dl">
+      <div><dt>Дата</dt><dd>{{ app_row.request_date|ru_date }}</dd></div>
+      <div><dt>Статус</dt><dd><span class="badge badge--{{ app_row.status|lower|replace(' ', '-') }}">{{ app_row.status }}</span></dd></div>
+      <div><dt>Арендатор</dt><dd>{{ app_row.full_name }}</dd></div>
+      <div><dt>Телефон</dt><dd>{{ app_row.phone }}</dd></div>
+      <div><dt>Почта</dt><dd>{{ app_row.email or '—' }}</dd></div>
+      <div><dt>Объект</dt><dd>{{ app_row.address_ufa or '—' }}</dd></div>
+      <div><dt>Район</dt><dd>{{ app_row.district_name or app_row.desired_district }}</dd></div>
+      <div><dt>Цена</dt><dd>{{ app_row.price_monthly|money }} ₽</dd></div>
+      <div><dt>Риелтор</dt><dd>{{ app_row.realtor_name or '—' }}</dd></div>
+      <div><dt>Комментарий</dt><dd>{{ app_row.comment or '—' }}</dd></div>
+    </dl>
+  </section>
+  <section class="card">
+    <h2 class="h4">Изменить статус</h2>
+    {% if transitions.get(app_row.status) %}
+    <div class="actions actions--column">
+      {% for target in transitions.get(app_row.status, []) %}
+      <form method="post" action="{{ url_for('manage_status', application_id=app_row.application_id) }}">
+        <input type="hidden" name="status" value="{{ target }}">
+        <button class="btn btn--outline btn--wide" type="submit">{{ icon('arrow') }} Перевести в «{{ target }}»</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Заявка закрыта, дальнейшие переходы не предусмотрены.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('manage_delete', application_id=app_row.application_id) }}"
+          onsubmit="return confirm('Удалить заявку?');">
+      <button class="btn btn--danger btn--wide" type="submit">{{ icon('trash') }} Удалить заявку</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

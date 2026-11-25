@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}ИС Аренда — аренда квартир в Уфе{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% from "_macros.html" import icon %}
+<header class="header">
+  <div class="container header__inner">
+    <div class="header__main">
+      <a class="logo" href="{{ url_for('index') }}"><span class="logo-mark">ИС</span> Аренда</a>
+      <nav class="nav" aria-label="Основная навигация">
+        <a class="nav__link {% if request.endpoint == 'index' %}is-active{% endif %}" href="{{ url_for('index') }}">Аренда</a>
+        <a class="nav__link {% if request.endpoint == 'objects_list' %}is-active{% endif %}" href="{{ url_for('objects_list') }}">Объекты</a>
+        <a class="nav__link {% if request.endpoint == 'applications_search' %}is-active{% endif %}" href="{{ url_for('applications_search') }}">Мои заявки</a>
+        <a class="nav__link" href="{{ url_for('login') }}">Кабинет риелтора</a>
+      </nav>
+    </div>
+    <div class="header__right">
+      {% if manager %}
+        <a class="header__link" href="{{ url_for('manage_applications') }}">Заявки в работе</a>
+        <form method="post" action="{{ url_for('logout') }}" class="inline">
+          <button class="btn btn--ghost btn--sm" type="submit">{{ icon('logout') }} Выйти</button>
+        </form>
+      {% else %}
+        <a class="header__link" href="{{ url_for('applications_search') }}">{{ icon('search') }} Найти заявку</a>
+        <a class="btn btn--primary btn--sm" href="{{ url_for('login', next=url_for('manage_applications')) }}">Войти</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main class="container page">
+  {% block alerts %}{% from "_macros.html" import flash_messages %}{{ flash_messages() }}{% endblock %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <span>© {{ current_year }} ИС «Аренда» · агентство аренды недвижимости в Уфе</span>
+    <nav class="footer__nav">
+      <a href="{{ url_for('index') }}">Каталог</a>
+      <a href="{{ url_for('objects_list') }}">Учёт объектов</a>
+      <a href="{{ url_for('applications_search') }}">Проверка заявки</a>
+      <a href="{{ url_for('login') }}">Вход для риелтора</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

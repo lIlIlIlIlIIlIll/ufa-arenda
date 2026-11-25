@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Проверка заявки — ИС Аренда{% endblock %}
+{% block content %}
+<h1 class="page-title page-title--left">Проверка заявки</h1>
+<p class="page-sub">Укажите номер заявки или телефон, на который она оформлена.</p>
+
+<form class="card form-row" method="get" action="{{ url_for('applications_search') }}">
+  <div class="field field--grow">
+    <label for="num">Номер заявки</label>
+    <input id="num" name="num" class="control" value="{{ num }}" placeholder="ЗАЯ-2026-0001">
+  </div>
+  <div class="field field--grow">
+    <label for="phone">Телефон</label>
+    <input id="phone" name="phone" class="control" value="{{ phone }}" placeholder="+7 (999) 123-45-67">
+  </div>
+  <button class="btn btn--primary" type="submit">{{ icon('search') }} Найти</button>
+</form>
+
+{% if results is not none %}
+<section class="card">
+  <h2 class="h4">Результаты: {{ results|length }}</h2>
+  {% if results %}
+  <table class="table">
+    <thead><tr><th>Номер</th><th>Дата</th><th>Объект</th><th>Цена</th><th>Статус</th></tr></thead>
+    <tbody>
+      {% for r in results %}
+      <tr>
+        <td class="mono">{{ r.application_num }}</td>
+        <td>{{ r.request_date|ru_date }}</td>
+        <td>{{ r.address_ufa or '—' }}</td>
+        <td>{{ r.price_monthly|money }} ₽</td>
+        <td><span class="badge badge--{{ r.status|lower|replace(' ', '-') }}">{{ r.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Заявки не найдены. Проверьте номер или телефон.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

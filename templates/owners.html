@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Собственники — ИС Аренда{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Навигация">
+  <a href="{{ url_for('objects_list') }}">Учёт объектов</a> <span>/</span> <span>Собственники</span>
+</nav>
+<h1 class="page-title page-title--left">Собственники</h1>
+<div class="two-col">
+  <section class="card">
+    <h2 class="h4">Список в базе</h2>
+    <table class="table">
+      <thead><tr><th>ФИО</th><th>Телефон</th><th>ЕГРН</th><th>Объектов</th></tr></thead>
+      <tbody>
+        {% for o in owners %}
+        <tr><td>{{ o.full_name }}</td><td>{{ o.phone }}</td><td class="mono">{{ o.egrn_number }}</td><td>{{ o.objects }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2 class="h4">Новый собственник</h2>
+    <form method="post" action="{{ url_for('owners_list') }}" novalidate>
+      <div class="field">
+        <label for="full_name">ФИО</label>
+        <input id="full_name" name="full_name" class="control {% if errors.get('full_name') %}is-invalid{% endif %}" value="{{ form.get('full_name', '') }}">
+        {% if errors.get('full_name') %}<p class="error">{{ errors.full_name }}</p>{% endif %}
+      </div>
+      <div class="field">
+        <label for="phone">Телефон</label>
+        <input id="phone" name="phone" class="control {% if errors.get('phone') %}is-invalid{% endif %}" value="{{ form.get('phone', '') }}">
+        {% if errors.get('phone') %}<p class="error">{{ errors.phone }}</p>{% endif %}
+      </div>
+      <div class="field">
+        <label for="passport_data">Паспорт</label>
+        <input id="passport_data" name="passport_data" class="control {% if errors.get('passport_data') %}is-invalid{% endif %}" value="{{ form.get('passport_data', '') }}">
+        {% if errors.get('passport_data') %}<p class="error">{{ errors.passport_data }}</p>{% endif %}
+      </div>
+      <div class="field">
+        <label for="egrn_number">Номер ЕГРН</label>
+        <input id="egrn_number" name="egrn_number" class="control {% if errors.get('egrn_number') %}is-invalid{% endif %}" value="{{ form.get('egrn_number', '') }}" placeholder="02:55:010124:412">
+        {% if errors.get('egrn_number') %}<p class="error">{{ errors.egrn_number }}</p>{% endif %}
+      </div>
+      <button class="btn btn--primary" type="submit">Сохранить</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

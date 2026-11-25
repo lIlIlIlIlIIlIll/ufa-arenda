@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>База данных ИС «Аренда» — просмотр</title>
+<style>
+  body { margin: 0; font: 14px/1.45 -apple-system, "SF Pro Text", Arial, sans-serif; background: #f5f7f8; color: #1f2329; }
+  header { background: #0b7a45; color: #fff; padding: 14px 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 700; }
+  header span { opacity: .85; font-size: 13px; }
+  .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .tools input { padding: 7px 10px; border-radius: 8px; border: 0; min-width: 220px; font-size: 13px; }
+  .tools button { padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; font-weight: 600; cursor: pointer; }
+  .tools button:hover { background: rgba(255,255,255,.15); }
+  .tools button.on { background: #fff; color: #0b7a45; }
+  .wrap { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 56px); }
+  nav { border-right: 1px solid #dfe4e8; background: #fff; padding: 10px 0; }
+  nav a { display: flex; justify-content: space-between; padding: 8px 18px; color: #1f2329; text-decoration: none; }
+  nav a:hover { background: #eef6f1; }
+  nav a.active { background: #e7f5ee; color: #00602f; font-weight: 700; border-left: 3px solid #0b7a45; padding-left: 15px; }
+  nav small { color: #5f6875; font-weight: 400; }
+  main { padding: 18px 22px; overflow: auto; }
+  h2 { margin: 0 0 4px; font-size: 18px; }
+  .meta { color: #5f6875; margin-bottom: 12px; }
+  table { border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); font-size: 13px; }
+  th { background: #e7f5ee; text-align: left; padding: 7px 10px; border: 1px solid #dfe4e8; white-space: nowrap; position: sticky; top: 0; }
+  td { padding: 6px 10px; border: 1px solid #e8ecef; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #fafcfb; }
+  td.num { text-align: right; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .st-Новая { background: #e8f0fa; color: #1f4f8a; }
+  .st-В-работе, .st-Связались { background: #fff4d6; color: #6b4b00; }
+  .st-Подобран { background: #e7f5ee; color: #00602f; }
+  .st-Закрыта { background: #eef1f4; color: #5f6875; }
+  .st-Активен { background: #e7f5ee; color: #00602f; }
+  .st-Сдан { background: #e8f0fa; color: #1f4f8a; }
+  .st-Отклонена { background: #fdecec; color: #a32020; }
+  .faint { color: #9aa3ad; }
+  code { background: #eef1f4; padding: 1px 5px; border-radius: 4px; }
+  .err { color: #a32020; }
+  .empty { color: #5f6875; font-style: italic; }
+</style>
+</head>
+<body>
+<header>
+  <h1>База данных ИС «Аренда»</h1>
+  <span>Электронная таблица просмотра <code style="background:rgba(255,255,255,.18);color:#fff">ufa_arenda.db</code> — обновляется автоматически</span>
+  <div class="tools">
+    <input id="filter" placeholder="Фильтр по строкам…">
+    <button id="refresh">Обновить</button>
+    <button id="auto" class="on">Авто: вкл</button>
+  </div>
+</header>
+<div class="wrap">
+  <nav id="tabs"></nav>
+  <main id="main"><p class="empty">Загрузка…</p></main>
+</div>
+<script src="data.js"></script>
+<script>
+const TABLES = ['applications', 'tenants', 'properties', 'saved_searches', 'owners', 'districts', 'realtors', 'contracts'];
+const LABELS = {
+  applications: 'Заявки', tenants: 'Арендаторы', properties: 'Объекты', saved_searches: 'Сохранённые поиски',
+  owners: 'Собственники', districts: 'Районы', realtors: 'Риелторы', contracts: 'Договоры'
+};
+const MASKED = new Set(['passport_data', 'password_hash']);
+let current = location.hash ? location.hash.slice(1) : 'applications';
+let auto = true, timer = null, lastJson = '';
+
+// Если data.json недоступен (открыли файл напрямую), берём данные через data.js
+function fallbackData() {
+  return window.ARENDA_DATA || null;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function cell(col, v) {
+  if (v === null || v === '') return '<span class="faint">—</span>';
+  if (MASKED.has(col)) return '<span class="faint">••• скрыто •••</span>';
+  if (['status', 'role'].includes(col)) {
+    const cls = 'st-' + String(v).replace(/\\s+/g, '-');
+    return `<span class="pill ${esc(cls)}">${esc(v)}</span>`;
+  }
+  if (['price_monthly', 'monthly_rent', 'commission_fee', 'area_total', 'price_max', 'avg_price_sqm', 'budget_max'].includes(col)) {
+    const n = Number(v);
+    return `<span class="num">${Number.isFinite(n) ? n.toLocaleString('ru-RU') : esc(v)}</span>`;
+  }
+  if (col === 'phone' ) return esc(v);
+  return esc(v);
+}
+
+async function load(force) {
+  try {
+    let data;
+    try {
+      const r = await fetch('data.json?ts=' + Date.now(), { cache: 'no-store' });
+      data = await r.json();
+    } catch (e) {
+      data = fallbackData();
+      if (!data) throw e;
+    }
+    const json = JSON.stringify(data.tables) + JSON.stringify(data.counts);
+    if (!force && json === lastJson) return;
+    lastJson = json;
+    renderTabs(data);
+    render(data);
+    document.querySelector('.meta-time').textContent = new Date().toLocaleTimeString('ru-RU');
+  } catch (e) {
+    document.getElementById('main').innerHTML = '<p class="err">Не удалось загрузить данные. Запустите refresh_db.py</p>';
+  }
+}
+
+function renderTabs(data) {
+  const nav = document.getElementById('tabs');
+  nav.innerHTML = TABLES.map(t => `
+    <a href="#${t}" class="${t === current ? 'active' : ''}" data-t="${t}">
+      <span>${LABELS[t] || t}</span><small>${data.counts[t] ?? 0}</small>
+    </a>`).join('');
+  nav.querySelectorAll('a').forEach(a => a.onclick = (ev) => {
+    ev.preventDefault(); current = a.dataset.t; location.hash = current;
+    renderTabs(data); render(data);
+  });
+}
+
+function render(data) {
+  const rows = data.tables[current] || [];
+  const cols = data.columns[current] || [];
+  const filter = document.getElementById('filter').value.trim().toLowerCase();
+  const shown = filter ? rows.filter(r => Object.values(r).some(v => v !== null && String(v).toLowerCase().includes(filter))) : rows;
+  let html = `<h2>${LABELS[current] || current} <code>${current}</code></h2>
+    <div class="meta">Строк: ${rows.length}${filter ? ' · показано: ' + shown.length : ''} · обновлено <span class="meta-time">—</span></div>`;
+  if (!shown.length) {
+    html += `<p class="empty">${rows.length ? 'Ничего не найдено по фильтру.' : 'Таблица пока пуста.'}</p>`;
+  } else {
+    html += '<table><thead><tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>';
+    for (const r of shown) {
+      html += '<tr>' + cols.map(c => `<td>${cell(c, r[c])}</td>`).join('') + '</tr>';
+    }
+    html += '</tbody></table>';
+  }
+  document.getElementById('main').innerHTML = html;
+}
+
+document.getElementById('refresh').onclick = () => load(true);
+document.getElementById('filter').oninput = () => load(true);
+document.getElementById('auto').onclick = (e) => {
+  auto = !auto;
+  e.target.classList.toggle('on', auto);
+  e.target.textContent = 'Авто: ' + (auto ? 'вкл' : 'выкл');
+  if (auto) load(true);
+};
+window.addEventListener('hashchange', () => { current = location.hash.slice(1) || 'applications'; load(true); });
+load(true);
+timer = setInterval(() => { if (auto) load(false); }, 2000);
+</script>
+</body>
+</html>

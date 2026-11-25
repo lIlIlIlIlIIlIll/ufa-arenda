@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Вход для риелтора — ИС Аренда{% endblock %}
+{% block content %}
+<div class="auth card">
+  <h1 class="h2 h2--center">Вход в систему</h1>
+  <p class="page-sub page-sub--center">Кабинет риелтора: обработка заявок на подбор жилья.</p>
+  {% if error %}<div class="alert alert--error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('login', next=next_url) }}">
+    <div class="field">
+      <label for="login">Логин</label>
+      <input id="login" name="login" class="control" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" class="control" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn--primary btn--wide" type="submit">Войти</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Аренда квартир в Уфе — ИС Аренда{% endblock %}
+{% block content %}
+<section class="searchbar card card--flat">
+  <form class="searchbar__form" method="get" action="{{ url_for('index') }}">
+    <div class="field field--inline">
+      <label for="district_id" class="sr-only">Район</label>
+      <select id="district_id" name="district_id" class="control">
+        <option value="">Все районы</option>
+        {% for d in districts %}
+        <option value="{{ d.district_id }}" {% if selected_district == d.district_id %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field field--inline">
+      <label for="rooms" class="sr-only">Комнат</label>
+      <select id="rooms" name="rooms" class="control">
+        <option value="">Комнат: любые</option>
+        {% for r in [1, 2, 3, 4] %}
+        <option value="{{ r }}" {% if rooms == r %}selected{% endif %}>{{ r }} комн.</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field field--inline">
+      <label for="price_max" class="sr-only">Цена до</label>
+      <input id="price_max" class="control" name="price_max" inputmode="numeric"
+             placeholder="Цена до, ₽" value="{{ price_max or '' }}">
+    </div>
+    <button class="btn btn--primary" type="submit">{{ icon('search') }} Показать объекты</button>
+    {% if selected_district or rooms or price_max %}
+    <a class="btn btn--ghost" href="{{ url_for('index') }}">Сбросить</a>
+    {% endif %}
+  </form>
+</section>
+
+<h1 class="page-title">Аренда квартир в Уфе на длительный срок</h1>
+<p class="page-sub">Найдено объектов: <strong>{{ properties|length }}</strong> из {{ total }} активных.
+  <a href="{{ url_for('objects_list') }}">Вести учёт объектов</a></p>
+
+{% if saved_searches %}
+<section class="saved">
+  <h2 class="h4">Сохранённые поиски</h2>
+  <div class="chips">
+    {% for s in saved_searches %}
+    <span class="chip">
+      <a href="{{ url_for('index', district_id=s.district_id, rooms=s.rooms_count, price_max=s.price_max) }}">{{ s.search_name }}</a>
+      <form method="post" action="{{ url_for('delete_search', search_id=s.search_id) }}" class="inline">
+        <button class="chip__x" type="submit" title="Удалить поиск" aria-label="Удалить поиск">{{ icon('cross') }}</button>
+      </form>
+    </span>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<div class="cards">
+  {% for p in properties %}
+  <article class="card object-card">
+    <div class="object-card__photo">{{ icon('rooms') }}</div>
+    <div class="object-card__body">
+      <h2 class="object-card__title">
+        <a href="{{ url_for('property_card', property_id=p.property_id) }}">{{ p.rooms_count }}-комн. квартира, {{ '%.1f'|format(p.area_total) }} м² · {{ p.floor_info }} эт.</a>
+      </h2>
+      <p class="object-card__addr">{{ icon('pin') }} г. Уфа, {{ p.district_name }}, {{ p.address_ufa.split(',', 1)[1] if ',' in p.address_ufa else p.address_ufa }}</p>
+      <p class="object-card__desc">{{ p.description }}</p>
+      <div class="object-card__actions">
+        <a class="btn btn--primary" href="{{ url_for('apply_form', property_id=p.property_id) }}">Оставить заявку</a>
+        <a class="btn btn--ghost" href="{{ url_for('property_card', property_id=p.property_id) }}">Подробнее</a>
+      </div>
+    </div>
+    <div class="object-card__side">
+      <div class="price">{{ p.price_monthly|money }} ₽ <span>/ мес</span></div>
+      <div class="object-card__type">{{ p.property_type }}</div>
+    </div>
+  </article>
+  {% else %}
+  <div class="card empty">
+    <p>По выбранным условиям объектов не найдено.</p>
+    <a class="btn btn--ghost" href="{{ url_for('index') }}">Сбросить фильтр</a>
+  </div>
+  {% endfor %}
+</div>
+
+{% if properties %}
+<section class="card save-search">
+  <h2 class="h4">Сохранить выбранный фильтр</h2>
+  <form method="post" action="{{ url_for('save_search') }}" class="form-row">
+    <input type="hidden" name="district_id" value="{{ selected_district or '' }}">
+    <input type="hidden" name="rooms" value="{{ rooms or '' }}">
+    <input type="hidden" name="price_max" value="{{ price_max or '' }}">
+    <label class="sr-only" for="search_name">Название поиска</label>
+    <input id="search_name" class="control" name="search_name" placeholder="Например: 2-комн. до 30 000 в Советском" maxlength="100">
+    <button class="btn btn--outline" type="submit">{{ icon('bookmark') }} Сохранить поиск</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

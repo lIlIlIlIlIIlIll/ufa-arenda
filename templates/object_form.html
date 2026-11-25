@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ title }} — ИС Аренда{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Навигация">
+  <a href="{{ url_for('objects_list') }}">Учёт объектов</a> <span>/</span> <span>{{ title }}</span>
+</nav>
+<h1 class="page-title page-title--left">{{ title }}</h1>
+
+{% if errors %}
+<div class="alert alert--error" role="alert">Форма содержит ошибки: проверьте поля, отмеченные красным ({{ errors|length }}).</div>
+{% endif %}
+
+<form class="card form-grid" method="post"
+      action="{{ url_for('objects_edit', property_id=form.property_id) if action == 'edit' else url_for('objects_create') }}" novalidate>
+  <div class="field field--full">
+    <label for="address_ufa">Адрес <span class="req">*</span></label>
+    <input id="address_ufa" name="address_ufa" class="control {% if errors.get('address_ufa') %}is-invalid{% endif %}"
+           value="{{ form.get('address_ufa', '') }}" placeholder="г. Уфа, ул. Ленина, д. 42">
+    {% if errors.get('address_ufa') %}<p class="error">{{ errors.address_ufa }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="district_id">Район <span class="req">*</span></label>
+    <select id="district_id" name="district_id" class="control {% if errors.get('district_id') %}is-invalid{% endif %}">
+      <option value="">— выберите —</option>
+      {% for d in districts %}
+      <option value="{{ d.district_id }}" {% if form.get('district_id')|string == d.district_id|string %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.get('district_id') %}<p class="error">{{ errors.district_id }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="owner_id">Собственник <span class="req">*</span></label>
+    <select id="owner_id" name="owner_id" class="control {% if errors.get('owner_id') %}is-invalid{% endif %}">
+      <option value="">— выберите —</option>
+      {% for o in owners %}
+      <option value="{{ o.owner_id }}" {% if form.get('owner_id')|string == o.owner_id|string %}selected{% endif %}>{{ o.full_name }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.get('owner_id') %}<p class="error">{{ errors.owner_id }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="property_type">Тип объекта</label>
+    <input id="property_type" name="property_type" class="control" value="{{ form.get('property_type', 'Квартира') }}">
+  </div>
+  <div class="field">
+    <label for="rooms_count">Комнат <span class="req">*</span></label>
+    <input id="rooms_count" name="rooms_count" class="control {% if errors.get('rooms_count') %}is-invalid{% endif %}"
+           value="{{ form.get('rooms_count', '') }}" inputmode="numeric" placeholder="2">
+    {% if errors.get('rooms_count') %}<p class="error">{{ errors.rooms_count }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="area_total">Площадь, м² <span class="req">*</span></label>
+    <input id="area_total" name="area_total" class="control {% if errors.get('area_total') %}is-invalid{% endif %}"
+           value="{{ form.get('area_total', '') }}" placeholder="58.5">
+    {% if errors.get('area_total') %}<p class="error">{{ errors.area_total }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="floor_info">Этаж <span class="req">*</span></label>
+    <input id="floor_info" name="floor_info" class="control {% if errors.get('floor_info') %}is-invalid{% endif %}"
+           value="{{ form.get('floor_info', '') }}" placeholder="5/9">
+    {% if errors.get('floor_info') %}<p class="error">{{ errors.floor_info }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="price_monthly">Цена, ₽ / мес <span class="req">*</span></label>
+    <input id="price_monthly" name="price_monthly" class="control {% if errors.get('price_monthly') %}is-invalid{% endif %}"
+           value="{{ form.get('price_monthly', '') }}" inputmode="numeric" placeholder="32000">
+    {% if errors.get('price_monthly') %}<p class="error">{{ errors.price_monthly }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label for="status">Статус</label>
+    <select id="status" name="status" class="control">
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if form.get('status', 'Активен') == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field--full">
+    <label for="description">Описание</label>
+    <textarea id="description" name="description" class="control" rows="3" maxlength="1000">{{ form.get('description') or '' }}</textarea>
+  </div>
+  <div class="field--full actions">
+    <button class="btn btn--primary" type="submit">{{ 'Сохранить изменения' if action == 'edit' else 'Добавить в базу' }}</button>
+    <a class="btn btn--ghost" href="{{ url_for('objects_list') }}">Отмена</a>
+    <a class="btn btn--ghost" href="{{ url_for('owners_list') }}">Добавить собственника</a>
+  </div>
+</form>
+{% endblock %}

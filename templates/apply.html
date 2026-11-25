@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ 'Изменить' if test_mode is defined and test_mode else 'Заявка на подбор жилья' }} — ИС Аренда{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Навигация">
+  <a href="{{ url_for('index') }}">Каталог</a> <span>/</span> <span>Заявка на подбор жилья</span>
+</nav>
+
+<h1 class="page-title page-title--left">Заявка на подбор жилья</h1>
+<p class="page-sub">Заполните форму — риелтор свяжется с вами в течение рабочего дня. Заявка сохраняется в базе агентства.</p>
+
+{% if errors.get('form') %}<div class="alert alert--error" role="alert">{{ errors.form }}</div>{% endif %}
+
+<div class="apply-grid">
+  <section class="card">
+    <h2 class="h4">Данные арендатора</h2>
+    <form method="post" action="{{ url_for('apply_submit') }}" novalidate>
+      <div class="field">
+        <label for="property_id">Объект <span class="req">*</span></label>
+        <select id="property_id" name="property_id" class="control {% if errors.get('property_id') %}is-invalid{% endif %}">
+          <option value="">— выберите объект из каталога —</option>
+          {% for p in properties %}
+          <option value="{{ p.property_id }}" {% if (form.get('property_id') or (prop and prop.property_id|string)) == p.property_id|string %}selected{% endif %}>
+            {{ p.rooms_count }}-комн., {{ '%.1f'|format(p.area_total) }} м², {{ p.district_name }}, {{ p.price_monthly|money }} ₽
+          </option>
+          {% endfor %}
+        </select>
+        {% if errors.get('property_id') %}<p class="error">{{ errors.property_id }}</p>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="full_name">Фамилия и имя <span class="req">*</span></label>
+        <input id="full_name" name="full_name" class="control {% if errors.get('full_name') %}is-invalid{% endif %}"
+               value="{{ form.get('full_name', '') }}" placeholder="Иванов Иван" autocomplete="name">
+        {% if errors.get('full_name') %}<p class="error">{{ errors.full_name }}</p>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="phone">Телефон <span class="req">*</span></label>
+        <input id="phone" name="phone" class="control {% if errors.get('phone') %}is-invalid{% endif %}"
+               value="{{ form.get('phone', '') }}" placeholder="+7 (999) 123-45-67" inputmode="tel" autocomplete="tel">
+        <p class="hint">Формат: +7 (999) 123-45-67 или 89991234567</p>
+        {% if errors.get('phone') %}<p class="error">{{ errors.phone }}</p>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="email">Электронная почта</label>
+        <input id="email" name="email" class="control {% if errors.get('email') %}is-invalid{% endif %}"
+               value="{{ form.get('email', '') }}" placeholder="name@mail.ru" autocomplete="email">
+        {% if errors.get('email') %}<p class="error">{{ errors.email }}</p>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="desired_district">Желаемый район <span class="req">*</span></label>
+        <select id="desired_district" name="desired_district" class="control {% if errors.get('desired_district') %}is-invalid{% endif %}">
+          <option value="">— выберите район —</option>
+          {% for d in districts %}
+          <option value="{{ d.name }}" {% if form.get('desired_district') == d.name %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('desired_district') %}<p class="error">{{ errors.desired_district }}</p>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="comment">Комментарий</label>
+        <textarea id="comment" name="comment" class="control" rows="3" maxlength="500"
+                  placeholder="Когда удобно посмотреть, пожелания к жилью">{{ form.get('comment', '') }}</textarea>
+        {% if errors.get('comment') %}<p class="error">{{ errors.comment }}</p>{% endif %}
+      </div>
+
+      <button class="btn btn--primary btn--wide" type="submit">Отправить</button>
+      <p class="hint hint--center">Поля со звёздочкой обязательны. Мы не передаём данные третьим лицам.</p>
+    </form>
+  </section>
+
+  <aside class="card summary">
+    <h2 class="h4">Выбранный объект</h2>
+    {% if prop %}
+    <p class="summary__title">{{ prop.rooms_count }}-комн. квартира, {{ '%.1f'|format(prop.area_total) }} м²</p>
+    <p class="summary__addr">{{ icon('pin') }} {{ prop.address_ufa }}</p>
+    <p class="summary__meta">Район: {{ prop.district_name }} · Этаж {{ prop.floor_info }}</p>
+    <p class="price price--lg">{{ prop.price_monthly|money }} ₽ <span>/ мес</span></p>
+    {% else %}
+    <p>Объект не выбран. Выберите его в списке слева или в <a href="{{ url_for('index') }}">каталоге</a>.</p>
+    {% endif %}
+    <ul class="summary__steps">
+      <li><span class="step">1</span> Заполните форму</li>
+      <li><span class="step">2</span> Получите номер заявки</li>
+      <li><span class="step">3</span> Риелтор свяжется с вами</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

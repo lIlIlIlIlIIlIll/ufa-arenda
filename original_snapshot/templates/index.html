@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>УфаАренда — Агентство недвижимости</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>Уфа<span>Аренда</span> (г. Уфа)</h1>
+    </div>
+</header>
+<main class="container">
+    {% if request.args.get('success') %}
+    <p style="background: #dcfce7; padding: 10px; color: #166534; border-radius: 5px;">Заявка успешно отправлена в базу данных!</p>
+    {% endif %}
+
+    <h2>Каталог объектов</h2>
+    <form method="GET" style="background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <label>Выберите район Уфы:</label>
+        <select name="district_id">
+            <option value="">Все районы</option>
+            {% for d in districts %}
+            <option value="{{ d.district_id }}" {% if selected_district == d.district_id|string %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn" style="margin-top: 10px;">Фильтровать</button>
+    </form>
+
+    <div>
+        {% for prop in properties %}
+        <div class="card">
+            <h3>{{ prop.address_ufa }}</h3>
+            <p>Район: <strong>{{ prop.district_name }}</strong> | Комнат: {{ prop.rooms_count }} | Площадь: {{ prop.area_total }} м²</p>
+            <p style="color: #15803d; font-weight: bold; font-size: 1.2rem;">{{ prop.price_monthly }} ₽ / мес.</p>
+            <p>{{ prop.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card" style="margin-top: 30px;">
+        <h3>Оставить заявку на подбор жилья</h3>
+        <form method="POST" action="{{ url_for('apply') }}">
+            <label>Ваше ФИО:</label>
+            <input type="text" name="full_name" required placeholder="Иванов И.И.">
+            <label>Телефон:</label>
+            <input type="text" name="phone" required placeholder="+7 (...) ...-..-..">
+            <label>Желаемый район Уфы:</label>
+            <input type="text" name="desired_district" value="Кировский район">
+            <button type="submit" class="btn btn-green" style="margin-top: 10px;">Отправить заявку</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

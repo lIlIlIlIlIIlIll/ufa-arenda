@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Заявки в работе — ИС Аренда{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title page-title--left">Заявки на подбор жилья</h1>
+    <p class="page-sub">Всего заявок в базе: <strong>{{ total }}</strong></p>
+  </div>
+  <span class="badge badge--info">{{ icon('user') }} {{ manager.name }}</span>
+</div>
+
+<div class="tabs">
+  <a class="tab {% if filter == 'all' %}is-active{% endif %}" href="{{ url_for('manage_applications', filter='all') }}">Все</a>
+  <a class="tab {% if filter == 'new' %}is-active{% endif %}" href="{{ url_for('manage_applications', filter='new') }}">Новые ({{ counts.get('Новая', 0) }})</a>
+  <a class="tab {% if filter == 'work' %}is-active{% endif %}" href="{{ url_for('manage_applications', filter='work') }}">В работе</a>
+  <a class="tab {% if filter == 'closed' %}is-active{% endif %}" href="{{ url_for('manage_applications', filter='closed') }}">Закрытые</a>
+</div>
+
+<section class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Номер</th><th>Дата</th><th>Арендатор</th><th>Телефон</th><th>Объект</th><th>Статус</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="mono"><a href="{{ url_for('manage_detail', application_id=r.application_id) }}">{{ r.application_num or r.application_id }}</a></td>
+        <td class="nowrap">{{ r.request_date|ru_date }}</td>
+        <td>{{ r.full_name }}</td>
+        <td class="nowrap">{{ r.phone }}</td>
+        <td>{{ r.address_ufa or '—' }}</td>
+        <td><span class="badge badge--{{ r.status|lower|replace(' ', '-') }}">{{ r.status }}</span></td>
+        <td class="nowrap">
+          {% for target in transitions.get(r.status, []) %}
+          <form method="post" action="{{ url_for('manage_status', application_id=r.application_id) }}" class="inline">
+            <input type="hidden" name="status" value="{{ target }}">
+            <input type="hidden" name="filter" value="{{ filter }}">
+            <button class="btn btn--ghost btn--xs" type="submit">→ {{ target }}</button>
+          </form>
+          {% endfor %}
+          <form method="post" action="{{ url_for('manage_delete', application_id=r.application_id) }}" class="inline"
+                onsubmit="return confirm('Удалить заявку {{ r.application_num }}?');">
+            <button class="btn btn--danger btn--xs" type="submit">{{ icon('trash') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">Заявок нет</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
