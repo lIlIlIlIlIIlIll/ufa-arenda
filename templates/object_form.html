@@ -82,7 +82,7 @@
   <div class="field--full actions">
     <button class="btn btn--primary" type="submit">{{ 'Сохранить изменения' if action == 'edit' else 'Добавить в базу' }}</button>
     <a class="btn btn--ghost" href="{{ url_for('objects_list') }}">Отмена</a>
-    <a class="btn btn--ghost" href="{{ url_for('owners_list') }}">Добавить собственника</a>
+    <a class="btn btn--ghost" href="{{ url_for('owners_list') }}">Собственники</a>
   </div>
 </form>
 {% endblock %}

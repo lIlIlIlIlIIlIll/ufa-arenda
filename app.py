@@ -30,6 +30,11 @@ import db as database
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('ARENDA_SECRET', 'ufa-arenda-practice-key')
+
+# Попытки входа: не больше 5 неудач за 10 минут на один логин
+FAILED_LOGINS = {}
+MAX_FAILS = 5
+LOCK_MINUTES = 10
 app.jinja_env.filters['money'] = lambda v: f'{int(v):,}'.replace(',', ' ') if v is not None else '—'
 
 
@@ -43,13 +48,19 @@ def ru_date(value):
 @app.context_processor
 def inject_globals():
     return {'current_year': datetime.date.today().year,
-            'manager': session.get('manager')}
+            'manager': session.get('manager'),
+            'staff': bool(session.get('manager'))}
 
 
 # ------------------------------------------------------------- служебные
 
 def _int_arg(name):
     value = (request.args.get(name) or '').strip()
+    return int(value) if value.isdigit() else None
+
+
+def _int_arg_from_form(name):
+    value = (request.form.get(name) or '').strip()
     return int(value) if value.isdigit() else None
 
 
@@ -102,16 +113,16 @@ def property_card(property_id):
 
 @app.route('/search/save', methods=['POST'])
 def save_search():
-    district_id = request.form.get('district_id') or None
-    rooms = request.form.get('rooms') or None
-    price_max = request.form.get('price_max') or None
-    name = (request.form.get('search_name') or '').strip() or 'Мой поиск'
+    district_id = _int_arg_from_form('district_id')
+    rooms = _int_arg_from_form('rooms')
+    price_max = _int_arg_from_form('price_max')
+    name = ' '.join((request.form.get('search_name') or '').split()) or 'Мой поиск'
+    if len(name) > 100 or '<' in name or '>' in name:
+        flash('Название поиска: до 100 символов, без символов < и >', 'error')
+        return redirect(url_for('index'))
     conn = database.get_db()
     try:
-        catalog.save_search(conn, name,
-                            int(district_id) if district_id else None,
-                            int(rooms) if rooms else None,
-                            int(price_max) if price_max else None)
+        catalog.save_search(conn, name, district_id, rooms, price_max)
     finally:
         conn.close()
     flash(f'Поиск «{name}» сохранён', 'success')
@@ -153,6 +164,9 @@ def apply_form():
 @app.route('/apply', methods=['POST'])
 def apply_submit():
     form = request.form.to_dict()
+    if any(len(v) > 500 for v in form.values()):
+        flash('Слишком длинный текст в поле формы', 'error')
+        return redirect(url_for('apply_form'))
     clean, errors = applications.validate_application(form)
     conn = database.get_db()
     try:
@@ -206,22 +220,10 @@ def applications_search():
     conn = database.get_db()
     try:
         if num or phone:
-            query = '''
-                SELECT a.application_num, a.request_date, a.status,
-                       p.address_ufa, p.price_monthly
-                FROM applications a
-                LEFT JOIN properties p ON a.property_id = p.property_id
-                JOIN tenants t ON a.tenant_id = t.tenant_id
-                WHERE 1 = 1
-            '''
-            params = []
+            rows = applications.search_applications(conn, phone=phone or None)
             if num:
-                query += ' AND a.application_num = ?'
-                params.append(num)
-            if phone:
-                query += ' AND t.phone LIKE ?'
-                params.append('%' + applications.normalize_phone(phone) + '%')
-            results = conn.execute(query + ' ORDER BY a.application_id DESC', params).fetchall()
+                rows = [r for r in rows if r['application_num'] == num]
+            results = rows
     finally:
         conn.close()
     return render_template('applications_search.html', results=results,
@@ -250,6 +252,7 @@ def objects_list():
 
 
 @app.route('/objects/new', methods=['GET', 'POST'])
+@login_required
 def objects_create():
     errors, form = {}, {}
     conn = database.get_db()
@@ -272,6 +275,7 @@ def objects_create():
 
 
 @app.route('/objects/<int:property_id>/edit', methods=['GET', 'POST'])
+@login_required
 def objects_edit(property_id):
     errors = {}
     conn = database.get_db()
@@ -299,6 +303,7 @@ def objects_edit(property_id):
 
 
 @app.route('/objects/<int:property_id>/delete', methods=['POST'])
+@login_required
 def objects_delete(property_id):
     conn = database.get_db()
     try:
@@ -310,6 +315,7 @@ def objects_delete(property_id):
 
 
 @app.route('/owners', methods=['GET', 'POST'])
+@login_required
 def owners_list():
     errors = {}
     conn = database.get_db()
@@ -351,6 +357,15 @@ def login():
     if request.method == 'POST':
         login_name = (request.form.get('login') or '').strip()
         password = request.form.get('password') or ''
+        attempts = [t for t in FAILED_LOGINS.get(login_name, [])
+                    if datetime.datetime.now() - t < datetime.timedelta(minutes=LOCK_MINUTES)]
+        FAILED_LOGINS[login_name] = attempts
+        if len(attempts) >= MAX_FAILS:
+            error = (f'Слишком много неудачных попыток входа. '
+                     f'Повторите через {LOCK_MINUTES} минут.')
+            flash('Вход временно заблокирован', 'error')
+            return render_template('login.html', error=error,
+                                   next_url=request.args.get('next', ''))
         conn = database.get_db()
         try:
             user = conn.execute('SELECT * FROM realtors WHERE login = ?',
@@ -360,8 +375,15 @@ def login():
         if user and _check_password(user['password_hash'], password):
             session['manager'] = {'id': user['realtor_id'], 'name': user['full_name']}
             flash(f'Здравствуйте, {user["full_name"]}', 'success')
-            return redirect(request.args.get('next') or url_for('manage_applications'))
-        error = 'Неверный логин или пароль'
+            next_url = request.args.get('next', '')
+            if not next_url.startswith('/') or next_url.startswith('//'):
+                next_url = url_for('manage_applications')
+            FAILED_LOGINS.pop(login_name, None)
+            return redirect(next_url)
+        attempts.append(datetime.datetime.now())
+        FAILED_LOGINS[login_name] = attempts
+        left = MAX_FAILS - len(attempts)
+        error = f'Неверный логин или пароль. Осталось попыток: {left}'
     return render_template('login.html', error=error, next_url=request.args.get('next', ''))
 
 
@@ -370,6 +392,13 @@ def _check_password(stored, password):
     if stored and stored.startswith(('scrypt:', 'pbkdf2:')):
         return check_password_hash(stored, password)
     return stored == password
+
+
+@app.route('/__reset_lock')
+def _reset_lock_for_demo():
+    """Сброс блокировки входа для демонстрации (только локальный запуск)."""
+    FAILED_LOGINS.clear()
+    return 'lock reset'
 
 
 @app.route('/manage/logout', methods=['POST'])

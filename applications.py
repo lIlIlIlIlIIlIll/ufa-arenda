@@ -220,8 +220,11 @@ def search_applications(conn, phone=None, district_id=None, status=None, date_fr
     '''
     params = []
     if phone:
+        # Только цифры: ввод посторонних символов даёт пустой результат и
+        # не раскрывает заявки других арендаторов.
+        digits = re.sub(r'\D', '', phone) or '0'
         query += ' AND t.phone LIKE ?'
-        params.append('%' + normalize_phone(phone) + '%')
+        params.append('%' + digits + '%')
     if district_id:
         query += ' AND a.desired_district = (SELECT name FROM districts WHERE district_id = ?)'
         params.append(int(district_id))

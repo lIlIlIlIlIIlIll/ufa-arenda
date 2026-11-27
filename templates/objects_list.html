@@ -7,7 +7,9 @@
     <h1 class="page-title page-title--left">Учёт объектов</h1>
     <p class="page-sub">Всего в базе: <strong>{{ properties|length }}</strong> записей по текущему запросу.</p>
   </div>
+  {% if staff %}
   <a class="btn btn--primary" href="{{ url_for('objects_create') }}">+ Добавить объект</a>
+  {% endif %}
 </div>
 
 <form class="card searchbar searchbar__form" method="get" action="{{ url_for('objects_list') }}">
@@ -54,16 +56,20 @@
         <td class="nowrap">{{ p.price_monthly|money }} ₽</td>
         <td><span class="badge badge--{{ p.status|lower|replace(' ', '-') }}">{{ p.status }}</span></td>
         <td class="nowrap">
+          {% if staff %}
           <a class="btn btn--ghost btn--xs" href="{{ url_for('objects_edit', property_id=p.property_id) }}">{{ icon('edit') }} Изменить</a>
           <form method="post" action="{{ url_for('objects_delete', property_id=p.property_id) }}" class="inline"
                 onsubmit="return confirm('Удалить объект №{{ p.property_id }}?');">
             <input type="hidden" name="token" value="{{ p.property_id }}">
             <button class="btn btn--danger btn--xs" type="submit">{{ icon('trash') }} Удалить</button>
           </form>
+          {% else %}
+          <span class="muted">только просмотр</span>
+          {% endif %}
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="8" class="muted">Записи не найдены. <a href="{{ url_for('objects_create') }}">Добавить объект</a></td></tr>
+      <tr><td colspan="8" class="muted">Записи не найдены.{% if staff %} <a href="{{ url_for('objects_create') }}">Добавить объект</a>{% endif %}</td></tr>
       {% endfor %}
     </tbody>
   </table>
